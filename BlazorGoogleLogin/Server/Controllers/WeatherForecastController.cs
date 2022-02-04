@@ -1,4 +1,5 @@
 using BlazorGoogleLogin.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlazorGoogleLogin.Server.Controllers
@@ -19,6 +20,7 @@ namespace BlazorGoogleLogin.Server.Controllers
             _logger = logger;
         }
 
+        [Authorize]
         [HttpGet]
         public IEnumerable<WeatherForecast> Get()
         {

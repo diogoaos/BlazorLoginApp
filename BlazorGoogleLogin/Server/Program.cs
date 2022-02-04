@@ -1,4 +1,11 @@
+using BlazorGoogleLogin.Server.Data;
+using BlazorGoogleLogin.Server.Services;
+using BlazorGoogleLogin.Server.Shared;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +13,32 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddDbContext<ApplicationContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"));
+});
+
+builder.Services.Configure<TokenSettings>
+    (builder.Configuration.GetSection("TokenSettings"));
+builder.Services.Configure<GoogleTokenSettings>
+    (builder.Configuration.GetSection("GoogleTokenSettings"));
+builder.Services.AddScoped<IAccountLogic, AccountLogic>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    var tokenSettings = builder.Configuration
+    .GetSection("TokenSettings").Get<TokenSettings>();
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidIssuer = tokenSettings.Issuer,
+        ValidateIssuer = true,
+        ValidAudience = tokenSettings.Audience,
+        ValidateAudience = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.Key)),
+        ValidateIssuerSigningKey = true,
+    };
+});
 
 var app = builder.Build();
 
@@ -28,6 +61,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
